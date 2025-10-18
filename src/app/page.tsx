@@ -1,8 +1,8 @@
 'use client'
-import UserForm from "@/components/UserForm";
 
 import React, { useState } from 'react';
-import { Search, Users, MapPin, BookOpen, Plus, FileText, Clock } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import dynamicIconImports from 'lucide-react/dynamicIconImports';
 
 export default function NarrativeWikiDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
