@@ -6,8 +6,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     const client = await clientPromise;
-    const db = client.db('your_database_name');
-    const collection = db.collection('your_collection_name');
+    const db = client.db('TestGround');
+    const collection = db.collection('Wonderland');
     
     const result = await collection.insertOne({
       ...body,
