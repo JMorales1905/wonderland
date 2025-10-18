@@ -1,8 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
-import dynamicIconImports from 'lucide-react/dynamicIconImports';
+import { Search, Users, MapPin, BookOpen, Plus, FileText, Clock } from 'lucide-react'
 
 export default function NarrativeWikiDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
