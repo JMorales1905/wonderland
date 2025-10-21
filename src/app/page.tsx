@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 
 export default function NarrativeWikiDashboard() {
@@ -108,10 +109,14 @@ export default function NarrativeWikiDashboard() {
                 <p className="text-slate-400 text-sm mb-4">{card.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500 text-sm">{card.count} entries</span>
-                  <button className="flex items-center space-x-1 text-indigo-400 hover:text-indigo-300 transition-colors">
+                  <Link
+                    href={card.action}
+                    className="flex items-center space-x-1 text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
                     <div className="w-4 h-4" />
                     <span className="text-sm">Add New</span>
-                  </button>
+                  </Link>
+
                 </div>
               </div>
             ))}
