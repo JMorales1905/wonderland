@@ -7,56 +7,78 @@ import connectDB from '@/app/lib/mongodb';
 import Character from '@/app/models/Character';
 import mongoose from 'mongoose';
 
-export async function PUT(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
     // TODO: Replace with actual auth
     const userId = 'temp-user-id';
 
-    const { id } = await context.params;
+    // Get search query parameter
+    const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get('search');
 
-    // Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    let query: any = { userId };
+
+    // Add search functionality
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { role: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const characters = await Character.find(query)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return NextResponse.json({ characters }, { status: 200 });
+  } catch (error: any) {
+    console.error('GET /api/characters error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch characters', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await connectDB();
+
+    // TODO: Replace with actual auth
+    const userId = 'temp-user-id';
+
+    const body = await request.json();
+
+    // Validate required fields
+    if (!body.name || !body.role || !body.description) {
       return NextResponse.json(
-        { error: 'Invalid character ID' },
+        { error: 'Name, role, and description are required' },
         { status: 400 }
       );
     }
 
-    const body = await request.json();
+    // Create new character
+    const character = await Character.create({
+      userId,
+      name: body.name,
+      age: body.age,
+      role: body.role,
+      description: body.description,
+      background: body.background,
+      personality: body.personality,
+      appearance: body.appearance,
+      relationships: body.relationships,
+      motivations: body.motivations,
+    });
 
-    // Find and update character (only if it belongs to the user)
-    const character = await Character.findOneAndUpdate(
-      { _id: id, userId },
-      {
-        name: body.name,
-        age: body.age,
-        role: body.role,
-        description: body.description,
-        background: body.background,
-        personality: body.personality,
-        appearance: body.appearance,
-        relationships: body.relationships,
-        motivations: body.motivations,
-      },
-      { new: true, runValidators: true }
-    );
-
-    if (!character) {
-      return NextResponse.json(
-        { error: 'Character not found or unauthorized' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ character }, { status: 200 });
+    return NextResponse.json({ character }, { status: 201 });
   } catch (error: any) {
-    console.error('PUT /api/characters/[id] error:', error);
+    console.error('POST /api/characters error:', error);
 
+    // Handle validation errors
     if (error.name === 'ValidationError') {
       return NextResponse.json(
         { error: 'Validation failed', details: error.message },
@@ -65,48 +87,7 @@ export async function PUT(
     }
 
     return NextResponse.json(
-      { error: 'Failed to update character', details: error.message },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    await connectDB();
-
-    // TODO: Replace with actual auth
-    const userId = 'temp-user-id';
-
-    const { id } = await context.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: 'Invalid character ID' },
-        { status: 400 }
-      );
-    }
-
-    const character = await Character.findOneAndDelete({ _id: id, userId });
-
-    if (!character) {
-      return NextResponse.json(
-        { error: 'Character not found or unauthorized' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(
-      { message: 'Character deleted successfully', character },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error('DELETE /api/characters/[id] error:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete character', details: error.message },
+      { error: 'Failed to create character', details: error.message },
       { status: 500 }
     );
   }
