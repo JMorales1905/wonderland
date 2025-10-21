@@ -7,15 +7,9 @@ import connectDB from '@/app/lib/mongodb';
 import Character from '@/app/models/Character';
 import mongoose from 'mongoose';
 
-interface RouteParams {
-  params: Promise<{
-    id: string;
-  }>;
-}
-
 export async function PUT(
   request: NextRequest,
-  { params }: RouteParams
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -23,7 +17,7 @@ export async function PUT(
     // TODO: Replace with actual auth
     const userId = 'temp-user-id';
 
-    const { id } = await params;
+    const { id } = await context.params;
 
     // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -79,7 +73,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: RouteParams
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -87,7 +81,7 @@ export async function DELETE(
     // TODO: Replace with actual auth
     const userId = 'temp-user-id';
 
-    const { id } = await params;
+    const { id } = await context.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
