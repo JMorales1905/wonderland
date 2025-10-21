@@ -1,15 +1,16 @@
 // ==========================================
 // 3. API Route - GET & POST (app/api/characters/route.ts)
 // ==========================================
+// app/api/characters/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import Character from '@/app/models/Character';
 import mongoose from 'mongoose';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function PUT(
@@ -22,7 +23,7 @@ export async function PUT(
     // TODO: Replace with actual auth
     const userId = 'temp-user-id';
 
-    const { id } = params;
+    const { id } = await params;
 
     // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -86,7 +87,7 @@ export async function DELETE(
     // TODO: Replace with actual auth
     const userId = 'temp-user-id';
 
-    const { id } = params;
+    const { id } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
