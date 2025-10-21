@@ -7,7 +7,7 @@ import connectDB from '@/app/lib/mongodb';
 import Character from '@/app/models/Character';
 import mongoose from 'mongoose';
 
-export default async function PUT(
+export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
