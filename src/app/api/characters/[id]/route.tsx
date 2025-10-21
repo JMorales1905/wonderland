@@ -10,7 +10,7 @@ import mongoose from 'mongoose';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -23,7 +23,7 @@ export async function PUT(
 
     const userId = 'temp-user-id'; // TODO: Replace with actual auth
 
-    const { id } = params;
+    const { id } = await params;
 
     // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
