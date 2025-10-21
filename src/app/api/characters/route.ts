@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import Character from '@/app/models/Character';
 import mongoose from 'mongoose';
+import { use } from 'react';
 
 export async function PUT(
   request: NextRequest,
@@ -17,7 +18,7 @@ export async function PUT(
     // TODO: Replace with actual auth
     const userId = 'temp-user-id';
 
-    const { id } = await context.params;
+    const { id } = use(context.params);
 
     // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
