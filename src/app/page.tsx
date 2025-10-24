@@ -33,8 +33,8 @@ export default function NarrativeWikiDashboard() {
       const charactersData = await charactersRes.json();
 
       // Fetch places count (you'll need to create this API)
-      // const placesRes = await fetch('/api/places');
-      // const placesData = await placesRes.json();
+      const placesRes = await fetch('/api/places');
+      const placesData = await placesRes.json();
 
       // Fetch plot count (you'll need to create this API)
       // const plotRes = await fetch('/api/plot');
@@ -42,7 +42,7 @@ export default function NarrativeWikiDashboard() {
 
       setStats({
         characters: charactersData.characters?.length || 0,
-        places: 0, // placesData.places?.length || 0,
+        places: placesData.places?.length || 0,
         plotPoints: 0 // plotData.plots?.length || 0
       });
     } catch (error) {
