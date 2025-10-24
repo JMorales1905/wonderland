@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-
+import { Search, Users, MapPin, BookOpen, Plus, Clock, Loader2 } from 'lucide-react';
 
 export default function NarrativeWikiDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,7 +32,7 @@ export default function NarrativeWikiDashboard() {
       const charactersRes = await fetch('/api/characters');
       const charactersData = await charactersRes.json();
 
-      // Fetch places count (you'll need to create this API)
+      // Fetch places count
       const placesRes = await fetch('/api/places');
       const placesData = await placesRes.json();
 
@@ -54,13 +54,15 @@ export default function NarrativeWikiDashboard() {
 
   const templateCards = [
     {
+      icon: Users,
       title: 'Characters',
       description: 'Create and manage character profiles, backgrounds, and relationships',
       count: stats.characters,
       color: 'from-blue-500 to-blue-600',
-      action: 'templates/characters'
+      action: '/templates/characters'
     },
     {
+      icon: MapPin,
       title: 'Places',
       description: 'Document locations, settings, and world-building details',
       count: stats.places,
@@ -68,6 +70,7 @@ export default function NarrativeWikiDashboard() {
       action: '/templates/places'
     },
     {
+      icon: BookOpen,
       title: 'Plot',
       description: 'Outline key events, story arcs, and narrative structure',
       count: stats.plotPoints,
@@ -76,17 +79,17 @@ export default function NarrativeWikiDashboard() {
     }
   ];
 
-  const handleSearch = (e: any) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Searching for:', searchQuery);
   };
 
-  const getActivityIcon = (type: any) => {
+  const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'character': return <div className="w-4 h-4" />;
-      case 'place': return <div className="w-4 h-4" />;
-      case 'plot': return <div className="w-4 h-4" />;
-      default: return <div className="w-4 h-4" />;
+      case 'character': return <Users className="w-4 h-4" />;
+      case 'place': return <MapPin className="w-4 h-4" />;
+      case 'plot': return <BookOpen className="w-4 h-4" />;
+      default: return <BookOpen className="w-4 h-4" />;
     }
   };
 
@@ -97,7 +100,7 @@ export default function NarrativeWikiDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 text-indigo-400" />
+              <BookOpen className="w-8 h-8 text-indigo-400" />
               <h1 className="text-2xl font-bold text-white">Narrative Wiki</h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -116,7 +119,7 @@ export default function NarrativeWikiDashboard() {
         {/* Search Section */}
         <div className="mb-10">
           <form onSubmit={handleSearch} className="relative">
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Search characters, places, plots, and more..."
@@ -138,14 +141,20 @@ export default function NarrativeWikiDashboard() {
                 className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition-all cursor-pointer group block"
               >
                 <div className={`w-12 h-12 bg-gradient-to-br ${card.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <div className="w-6 h-6 text-white" />
+                  <card.icon className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">{card.title}</h3>
                 <p className="text-slate-400 text-sm mb-4">{card.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500 text-sm">{card.count} entries</span>
+                  <span className="text-slate-500 text-sm">
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin inline" />
+                    ) : (
+                      `${card.count} entries`
+                    )}
+                  </span>
                   <div className="flex items-center space-x-1 text-indigo-400 group-hover:text-indigo-300 transition-colors">
-                    <div className="w-4 h-4" />
+                    <Plus className="w-4 h-4" />
                     <span className="text-sm">View All</span>
                   </div>
                 </div>
@@ -153,7 +162,6 @@ export default function NarrativeWikiDashboard() {
             ))}
           </div>
         </div>
-
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -175,7 +183,7 @@ export default function NarrativeWikiDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 text-slate-500 text-sm">
-                    < div className="w-4 h-4" />
+                    <Clock className="w-4 h-4" />
                     <span>{activity.updated}</span>
                   </div>
                 </div>
@@ -190,23 +198,29 @@ export default function NarrativeWikiDashboard() {
               <div className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-blue-400 text-sm font-medium">Characters</span>
-                  <div className="w-5 h-5 text-blue-400" />
+                  <Users className="w-5 h-5 text-blue-400" />
                 </div>
-                <p className="text-3xl font-bold text-white">{stats.characters}</p>
+                <p className="text-3xl font-bold text-white">
+                  {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : stats.characters}
+                </p>
               </div>
               <div className="p-4 bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-green-400 text-sm font-medium">Places</span>
-                  <div className="w-5 h-5 text-green-400" />
+                  <MapPin className="w-5 h-5 text-green-400" />
                 </div>
-                <p className="text-3xl font-bold text-white">{stats.places}</p>
+                <p className="text-3xl font-bold text-white">
+                  {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : stats.places}
+                </p>
               </div>
               <div className="p-4 bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/20 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-purple-400 text-sm font-medium">Plot Points</span>
-                  <div className="w-5 h-5 text-purple-400" />
+                  <BookOpen className="w-5 h-5 text-purple-400" />
                 </div>
-                <p className="text-3xl font-bold text-white">{stats.plotPoints}</p>
+                <p className="text-3xl font-bold text-white">
+                  {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : stats.plotPoints}
+                </p>
               </div>
             </div>
           </div>

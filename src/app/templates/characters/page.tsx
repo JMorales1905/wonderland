@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-
+import {
+    Search,
+    Plus,
+    Edit2,
+    Trash2,
+    X,
+    Save,
+    ArrowLeft,
+    User,
+    FileText,
+    Loader2
+} from 'lucide-react';
 
 interface Character {
     _id: string;
@@ -198,11 +209,11 @@ export default function CharactersTemplate() {
                                 onClick={() => window.history.back()}
                                 className="p-2 text-slate-400 hover:text-white transition-colors"
                             >
-                                <div className="w-5 h-5" />
+                                <ArrowLeft className="w-5 h-5" />
                             </button>
                             <div className="flex items-center space-x-3">
                                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                                    <div className="w-6 h-6 text-white" />
+                                    <User className="w-6 h-6 text-white" />
                                 </div>
                                 <h1 className="text-2xl font-bold text-white">Characters</h1>
                             </div>
@@ -211,7 +222,7 @@ export default function CharactersTemplate() {
                             onClick={() => handleOpenModal()}
                             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
-                            <div className="w-4 h-4" />
+                            <Plus className="w-4 h-4" />
                             <span>New Character</span>
                         </button>
                     </div>
@@ -229,7 +240,7 @@ export default function CharactersTemplate() {
                 {/* Search Bar */}
                 <div className="mb-8">
                     <div className="relative">
-                        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <input
                             type="text"
                             placeholder="Search characters by name, role, or description..."
@@ -243,7 +254,7 @@ export default function CharactersTemplate() {
                 {/* Loading State */}
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-16">
-                        <div className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+                        <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
                         <p className="text-slate-400">Loading characters...</p>
                     </div>
                 ) : (
@@ -274,13 +285,13 @@ export default function CharactersTemplate() {
                                                 onClick={() => handleOpenModal(character)}
                                                 className="p-2 text-slate-400 hover:text-blue-400 transition-colors"
                                             >
-                                                <div className="w-4 h-4" />
+                                                <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(character._id)}
                                                 className="p-2 text-slate-400 hover:text-red-400 transition-colors"
                                             >
-                                                <div className="w-4 h-4 bg-amber-500" />
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -307,7 +318,7 @@ export default function CharactersTemplate() {
                         {/* Empty State */}
                         {filteredCharacters.length === 0 && !loading && (
                             <div className="text-center py-16">
-                                <div className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                                <User className="w-16 h-16 text-slate-600 mx-auto mb-4" />
                                 <h3 className="text-xl font-semibold text-slate-400 mb-2">No characters found</h3>
                                 <p className="text-slate-500">
                                     {searchQuery ? 'Try a different search term' : 'Create your first character to get started'}
@@ -331,7 +342,7 @@ export default function CharactersTemplate() {
                                 className="p-2 text-slate-400 hover:text-white transition-colors"
                                 disabled={saving}
                             >
-                                <div className="w-5 h-5" />
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
 
@@ -346,7 +357,7 @@ export default function CharactersTemplate() {
                             {/* Basic Information */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
-                                    <div className="w-5 h-5 text-blue-400" />
+                                    <User className="w-5 h-5 text-blue-400" />
                                     <span>Basic Information</span>
                                 </h3>
 
@@ -416,7 +427,7 @@ export default function CharactersTemplate() {
                             {/* Detailed Information */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
-                                    <div className="w-5 h-5 text-green-400" />
+                                    <FileText className="w-5 h-5 text-green-400" />
                                     <span>Details</span>
                                 </h3>
 
@@ -512,12 +523,12 @@ export default function CharactersTemplate() {
                             >
                                 {saving ? (
                                     <>
-                                        <div className="w-4 h-4 animate-spin" />
+                                        <Loader2 className="w-4 h-4 animate-spin" />
                                         <span>Saving...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="w-4 h-4" />
+                                        <Save className="w-4 h-4" />
                                         <span>{editingCharacter ? 'Update' : 'Create'}</span>
                                     </>
                                 )}
