@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 
@@ -12,11 +12,45 @@ export default function NarrativeWikiDashboard() {
     { type: 'plot', name: 'Chapter 3: The Revelation', updated: '1 day ago' }
   ]);
 
-  const [stats] = useState({
-    characters: 12,
-    places: 8,
-    plotPoints: 15
+  const [stats, setStats] = useState({
+    characters: 0,
+    places: 0,
+    plotPoints: 0
   });
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch character count
+      const charactersRes = await fetch('/api/characters');
+      const charactersData = await charactersRes.json();
+
+      // Fetch places count (you'll need to create this API)
+      // const placesRes = await fetch('/api/places');
+      // const placesData = await placesRes.json();
+
+      // Fetch plot count (you'll need to create this API)
+      // const plotRes = await fetch('/api/plot');
+      // const plotData = await plotRes.json();
+
+      setStats({
+        characters: charactersData.characters?.length || 0,
+        places: 0, // placesData.places?.length || 0,
+        plotPoints: 0 // plotData.plots?.length || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const templateCards = [
     {
@@ -24,7 +58,7 @@ export default function NarrativeWikiDashboard() {
       description: 'Create and manage character profiles, backgrounds, and relationships',
       count: stats.characters,
       color: 'from-blue-500 to-blue-600',
-      action: '/templates/characters'
+      action: 'templates/characters'
     },
     {
       title: 'Places',
@@ -98,9 +132,10 @@ export default function NarrativeWikiDashboard() {
           <h2 className="text-xl font-semibold text-white mb-6">Your Narrative Templates</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {templateCards.map((card, index) => (
-              <div
+              <Link
                 key={index}
-                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition-all cursor-pointer group"
+                href={card.action}
+                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition-all cursor-pointer group block"
               >
                 <div className={`w-12 h-12 bg-gradient-to-br ${card.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                   <div className="w-6 h-6 text-white" />
@@ -109,19 +144,16 @@ export default function NarrativeWikiDashboard() {
                 <p className="text-slate-400 text-sm mb-4">{card.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500 text-sm">{card.count} entries</span>
-                  <Link
-                    href={card.action}
-                    className="flex items-center space-x-1 text-indigo-400 hover:text-indigo-300 transition-colors"
-                  >
+                  <div className="flex items-center space-x-1 text-indigo-400 group-hover:text-indigo-300 transition-colors">
                     <div className="w-4 h-4" />
-                    <span className="text-sm">Add New</span>
-                  </Link>
-
+                    <span className="text-sm">View All</span>
+                  </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
+
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
