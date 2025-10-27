@@ -45,6 +45,7 @@ export async function PUT(
         appearance: body.appearance,
         relationships: body.relationships,
         motivations: body.motivations,
+        imageUrl: body.imageUrl,
       },
       { new: true, runValidators: true } // Return updated doc and run validation
     );

@@ -104,9 +104,9 @@ export default function PlacesTemplate() {
         if (place) {
             setEditingPlace(place);
             setFormData({
-                name: place.name,
-                type: place.type,
-                description: place.description,
+                name: place.name || '',
+                type: place.type || '',
+                description: place.description || '',
                 location: place.location || '',
                 significance: place.significance || '',
                 atmosphere: place.atmosphere || '',
@@ -186,9 +186,9 @@ export default function PlacesTemplate() {
     };
 
     const filteredPlaces = places.filter(place =>
-        place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        place.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        place.description.toLowerCase().includes(searchQuery.toLowerCase())
+        place.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        place.type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        place.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (

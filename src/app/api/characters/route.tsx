@@ -5,7 +5,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import Character from '@/app/models/Character';
-import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,6 +71,7 @@ export async function POST(request: NextRequest) {
       appearance: body.appearance,
       relationships: body.relationships,
       motivations: body.motivations,
+      imageUrl: body.imageUrl,
     });
 
     return NextResponse.json({ character }, { status: 201 });

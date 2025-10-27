@@ -11,7 +11,9 @@ import {
     ArrowLeft,
     User,
     FileText,
-    Loader2
+    Loader2,
+    Upload,
+    Image as ImageIcon
 } from 'lucide-react';
 
 interface Character {
@@ -25,6 +27,7 @@ interface Character {
     appearance?: string;
     relationships?: string;
     motivations?: string;
+    imageUrl?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -39,6 +42,7 @@ interface CharacterFormData {
     appearance: string;
     relationships: string;
     motivations: string;
+    imageUrl: string;
 }
 
 export default function CharactersTemplate() {
@@ -49,6 +53,8 @@ export default function CharactersTemplate() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string>('');
     const [formData, setFormData] = useState<CharacterFormData>({
         name: '',
         age: '',
@@ -58,10 +64,10 @@ export default function CharactersTemplate() {
         personality: '',
         appearance: '',
         relationships: '',
-        motivations: ''
+        motivations: '',
+        imageUrl: ''
     });
 
-    // Fetch characters on component mount
     useEffect(() => {
         fetchCharacters();
     }, []);
@@ -96,25 +102,56 @@ export default function CharactersTemplate() {
             personality: '',
             appearance: '',
             relationships: '',
-            motivations: ''
+            motivations: '',
+            imageUrl: ''
         });
         setEditingCharacter(null);
+        setImageFile(null);
+        setImagePreview('');
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Check file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                setError('Image size must be less than 5MB');
+                return;
+            }
+
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setImageFile(null);
+        setImagePreview('');
+        setFormData(prev => ({ ...prev, imageUrl: '' }));
     };
 
     const handleOpenModal = (character?: Character) => {
         if (character) {
             setEditingCharacter(character);
             setFormData({
-                name: character.name,
+                name: character.name || '',
                 age: character.age?.toString() || '',
-                role: character.role,
-                description: character.description,
+                role: character.role || '',
+                description: character.description || '',
                 background: character.background || '',
                 personality: character.personality || '',
                 appearance: character.appearance || '',
                 relationships: character.relationships || '',
-                motivations: character.motivations || ''
+                motivations: character.motivations || '',
+                imageUrl: character.imageUrl || ''
             });
+            if (character.imageUrl) {
+                setImagePreview(character.imageUrl);
+            }
         } else {
             resetForm();
         }
@@ -136,16 +173,41 @@ export default function CharactersTemplate() {
             setSaving(true);
             setError(null);
 
+            let uploadedImageUrl = formData.imageUrl;
+
+            // Upload image if a new file was selected
+            if (imageFile) {
+                const imageFormData = new FormData();
+                imageFormData.append('file', imageFile);
+                imageFormData.append('upload_preset', 'narrative-wiki'); // Change to your preset name
+
+                // Replace YOUR_CLOUD_NAME with actual Cloudinary cloud name
+                const cloudinaryResponse = await fetch(
+                    `https://api.cloudinary.com/v1_1/dhia4pqo0/image/upload`,
+                    {
+                        method: 'POST',
+                        body: imageFormData,
+                    }
+                );
+
+                if (cloudinaryResponse.ok) {
+                    const cloudinaryData = await cloudinaryResponse.json();
+                    uploadedImageUrl = cloudinaryData.secure_url;
+                } else {
+                    throw new Error('Failed to upload image');
+                }
+            }
+
             const url = editingCharacter
                 ? `/api/characters/${editingCharacter._id}`
                 : '/api/characters';
 
             const method = editingCharacter ? 'PUT' : 'POST';
 
-            // Prepare data to send
             const dataToSend = {
                 ...formData,
-                age: formData.age ? parseInt(formData.age) : undefined
+                age: formData.age ? parseInt(formData.age) : undefined,
+                imageUrl: uploadedImageUrl
             };
 
             const res = await fetch(url, {
@@ -159,7 +221,7 @@ export default function CharactersTemplate() {
                 throw new Error(errorData.error || 'Failed to save character');
             }
 
-            await fetchCharacters(); // Refresh the list
+            await fetchCharacters();
             handleCloseModal();
         } catch (error: any) {
             console.error('Error saving character:', error);
@@ -185,7 +247,7 @@ export default function CharactersTemplate() {
                 throw new Error(errorData.error || 'Failed to delete character');
             }
 
-            await fetchCharacters(); // Refresh the list
+            await fetchCharacters();
         } catch (error: any) {
             console.error('Error deleting character:', error);
             setError(error.message || 'Failed to delete character. Please try again.');
@@ -193,9 +255,9 @@ export default function CharactersTemplate() {
     };
 
     const filteredCharacters = characters.filter(char =>
-        char.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        char.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        char.description.toLowerCase().includes(searchQuery.toLowerCase())
+        char.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        char.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        char.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -230,14 +292,12 @@ export default function CharactersTemplate() {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Error Message */}
                 {error && (
                     <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400">
                         {error}
                     </div>
                 )}
 
-                {/* Search Bar */}
                 <div className="mb-8">
                     <div className="relative">
                         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -251,7 +311,6 @@ export default function CharactersTemplate() {
                     </div>
                 </div>
 
-                {/* Loading State */}
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-16">
                         <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
@@ -259,7 +318,6 @@ export default function CharactersTemplate() {
                     </div>
                 ) : (
                     <>
-                        {/* Characters Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredCharacters.map((character) => (
                                 <div
@@ -268,11 +326,19 @@ export default function CharactersTemplate() {
                                 >
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-center space-x-3">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                                                <span className="text-white font-bold text-lg">
-                                                    {character.name.charAt(0)}
-                                                </span>
-                                            </div>
+                                            {character.imageUrl ? (
+                                                <img
+                                                    src={character.imageUrl}
+                                                    alt={character.name}
+                                                    className="w-12 h-12 rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                                                    <span className="text-white font-bold text-lg">
+                                                        {character.name.charAt(0)}
+                                                    </span>
+                                                </div>
+                                            )}
                                             <div>
                                                 <h3 className="text-lg font-semibold text-white">{character.name}</h3>
                                                 {character.age && (
@@ -315,7 +381,6 @@ export default function CharactersTemplate() {
                             ))}
                         </div>
 
-                        {/* Empty State */}
                         {filteredCharacters.length === 0 && !loading && (
                             <div className="text-center py-16">
                                 <User className="w-16 h-16 text-slate-600 mx-auto mb-4" />
@@ -347,19 +412,61 @@ export default function CharactersTemplate() {
                         </div>
 
                         <div className="p-6 space-y-6">
-                            {/* Error in Modal */}
                             {error && (
                                 <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
                                     {error}
                                 </div>
                             )}
 
-                            {/* Basic Information */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
                                     <User className="w-5 h-5 text-blue-400" />
                                     <span>Basic Information</span>
                                 </h3>
+
+                                {/* Image Upload */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                                        Character Image
+                                    </label>
+                                    <div className="flex items-center space-x-4">
+                                        {imagePreview ? (
+                                            <div className="relative">
+                                                <img
+                                                    src={imagePreview}
+                                                    alt="Preview"
+                                                    className="w-24 h-24 rounded-lg object-cover"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveImage}
+                                                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                                    disabled={saving}
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="w-24 h-24 bg-slate-900 border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center">
+                                                <ImageIcon className="w-8 h-8 text-slate-600" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1">
+                                            <label className="flex items-center justify-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors cursor-pointer">
+                                                <Upload className="w-4 h-4" />
+                                                <span>Upload Image</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleImageChange}
+                                                    className="hidden"
+                                                    disabled={saving}
+                                                />
+                                            </label>
+                                            <p className="text-slate-500 text-xs mt-2">PNG, JPG up to 5MB</p>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
@@ -424,7 +531,6 @@ export default function CharactersTemplate() {
                                 </div>
                             </div>
 
-                            {/* Detailed Information */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
                                     <FileText className="w-5 h-5 text-green-400" />

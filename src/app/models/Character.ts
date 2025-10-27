@@ -15,6 +15,7 @@ export interface ICharacter {
   appearance?: string;
   relationships?: string;
   motivations?: string;
+  imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,6 +75,10 @@ const CharacterSchema = new Schema<ICharacter>(
       trim: true,
       maxlength: [1000, 'Motivations cannot be more than 1000 characters'],
     },
+    imageUrl: {
+      type: String,
+      trim: true,
+    }
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

@@ -6,11 +6,20 @@ import { Search, Users, MapPin, BookOpen, Plus, Clock, Loader2 } from 'lucide-re
 
 export default function NarrativeWikiDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [recentActivity] = useState([
-    { type: 'character', name: 'John Doe', updated: '2 hours ago' },
-    { type: 'place', name: 'The Old Library', updated: '5 hours ago' },
-    { type: 'plot', name: 'Chapter 3: The Revelation', updated: '1 day ago' }
-  ]);
+  const [searchResults, setSearchResults] = useState<Array<{
+    type: 'character' | 'place' | 'plot';
+    name: string;
+    description: string;
+    _id: string;
+  }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [recentActivity, setRecentActivity] = useState<Array<{
+    type: 'character' | 'place' | 'plot';
+    name: string;
+    updated: string;
+    _id: string;
+  }>>([]);
 
   const [stats, setStats] = useState({
     characters: 0,
@@ -22,7 +31,72 @@ export default function NarrativeWikiDashboard() {
 
   useEffect(() => {
     fetchStats();
+    fetchRecentActivity();
   }, []);
+
+  const fetchRecentActivity = async () => {
+    try {
+      // Fetch recent items from all three APIs
+      const [charactersRes, placesRes, plotsRes] = await Promise.all([
+        fetch('/api/characters'),
+        fetch('/api/places'),
+        fetch('/api/plots')
+      ]);
+
+      const [charactersData, placesData, plotsData] = await Promise.all([
+        charactersRes.json(),
+        placesRes.json(),
+        plotsRes.json()
+      ]);
+
+      // Combine and format all items
+      const allItems = [
+        ...(charactersData.characters || []).map((item: any) => ({
+          type: 'character' as const,
+          name: item.name,
+          updated: item.updatedAt,
+          _id: item._id
+        })),
+        ...(placesData.places || []).map((item: any) => ({
+          type: 'place' as const,
+          name: item.name,
+          updated: item.updatedAt,
+          _id: item._id
+        })),
+        ...(plotsData.plots || []).map((item: any) => ({
+          type: 'plot' as const,
+          name: item.title,
+          updated: item.updatedAt,
+          _id: item._id
+        }))
+      ];
+
+      // Sort by most recently updated and take top 5
+      const sortedItems = allItems
+        .sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime())
+        .slice(0, 5)
+        .map(item => ({
+          ...item,
+          updated: formatTimeAgo(item.updated)
+        }));
+
+      setRecentActivity(sortedItems);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+    }
+  };
+
+  const formatTimeAgo = (date: string | Date) => {
+    const now = new Date();
+    const updated = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - updated.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    return `${Math.floor(diffInSeconds / 604800)} weeks ago`;
+  };
 
   const fetchStats = async () => {
     try {
@@ -37,13 +111,13 @@ export default function NarrativeWikiDashboard() {
       const placesData = await placesRes.json();
 
       // Fetch plot count (you'll need to create this API)
-      // const plotRes = await fetch('/api/plot');
-      // const plotData = await plotRes.json();
+      const plotRes = await fetch('/api/plots');
+      const plotData = await plotRes.json();
 
       setStats({
         characters: charactersData.characters?.length || 0,
         places: placesData.places?.length || 0,
-        plotPoints: 0 // plotData.plots?.length || 0
+        plotPoints: plotData.plots?.length || 0
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -79,9 +153,83 @@ export default function NarrativeWikiDashboard() {
     }
   ];
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Searching for:', searchQuery);
+
+    if (!searchQuery.trim()) {
+      setShowSearchResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    setShowSearchResults(true);
+
+    try {
+      // Search across all three templates
+      const [charactersRes, placesRes, plotsRes] = await Promise.all([
+        fetch(`/api/characters?search=${encodeURIComponent(searchQuery)}`),
+        fetch(`/api/places?search=${encodeURIComponent(searchQuery)}`),
+        fetch(`/api/plots?search=${encodeURIComponent(searchQuery)}`)
+      ]);
+
+      const [charactersData, placesData, plotsData] = await Promise.all([
+        charactersRes.json(),
+        placesRes.json(),
+        plotsRes.json()
+      ]);
+
+      // Combine all results
+      const results = [
+        ...(charactersData.characters || []).map((item: any) => ({
+          type: 'character' as const,
+          name: item.name,
+          description: item.description,
+          _id: item._id
+        })),
+        ...(placesData.places || []).map((item: any) => ({
+          type: 'place' as const,
+          name: item.name,
+          description: item.description,
+          _id: item._id
+        })),
+        ...(plotsData.plots || []).map((item: any) => ({
+          type: 'plot' as const,
+          name: item.title,
+          description: item.description,
+          _id: item._id
+        }))
+      ];
+
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    if (!value.trim()) {
+      setShowSearchResults(false);
+      setSearchResults([]);
+    }
+  };
+
+  const getResultLink = (type: string, id: string) => {
+    return `/templates/${type === 'plot' ? 'plot' : type}s`;
+  };
+
+  const getResultIcon = (type: string) => {
+    switch (type) {
+      case 'character': return <Users className="w-5 h-5 text-blue-400" />;
+      case 'place': return <MapPin className="w-5 h-5 text-green-400" />;
+      case 'plot': return <BookOpen className="w-5 h-5 text-purple-400" />;
+      default: return <BookOpen className="w-5 h-5" />;
+    }
   };
 
   const getActivityIcon = (type: string) => {
@@ -117,17 +265,59 @@ export default function NarrativeWikiDashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Section */}
-        <div className="mb-10">
+        <div className="mb-10 relative">
           <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
             <input
               type="text"
               placeholder="Search characters, places, plots, and more..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchInputChange}
               className="w-full pl-12 pr-4 py-4 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
             />
           </form>
+
+          {/* Search Results Dropdown */}
+          {showSearchResults && (
+            <div className="absolute top-full mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
+              {isSearching ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+                  <span className="ml-2 text-slate-400">Searching...</span>
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="p-2">
+                  {searchResults.map((result, index) => (
+                    <Link
+                      key={`${result.type}-${result._id}-${index}`}
+                      href={getResultLink(result.type, result._id)}
+                      className="flex items-start space-x-3 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"
+                      onClick={() => setShowSearchResults(false)}
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        {getResultIcon(result.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <p className="text-white font-medium truncate">{result.name}</p>
+                          <span className="inline-block px-2 py-0.5 bg-slate-700 text-slate-300 rounded text-xs capitalize flex-shrink-0">
+                            {result.type}
+                          </span>
+                        </div>
+                        <p className="text-slate-400 text-sm mt-1 line-clamp-2">{result.description}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-400">
+                  <Search className="w-12 h-12 mx-auto mb-2 text-slate-600" />
+                  <p>No results found for "{searchQuery}"</p>
+                  <p className="text-sm mt-1">Try a different search term</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Template Cards */}
@@ -167,28 +357,39 @@ export default function NarrativeWikiDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
             <h2 className="text-xl font-semibold text-white mb-4">Recent Activity</h2>
-            <div className="space-y-3">
-              {recentActivity.map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg hover:bg-slate-900/70 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-slate-300">
-                      {getActivityIcon(activity.type)}
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+              </div>
+            ) : recentActivity.length > 0 ? (
+              <div className="space-y-3">
+                {recentActivity.map((activity, index) => (
+                  <div
+                    key={activity._id || index}
+                    className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg hover:bg-slate-900/70 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-slate-300">
+                        {getActivityIcon(activity.type)}
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">{activity.name}</p>
+                        <p className="text-slate-400 text-sm capitalize">{activity.type}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-white font-medium">{activity.name}</p>
-                      <p className="text-slate-400 text-sm capitalize">{activity.type}</p>
+                    <div className="flex items-center space-x-2 text-slate-500 text-sm">
+                      <Clock className="w-4 h-4" />
+                      <span>{activity.updated}</span>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2 text-slate-500 text-sm">
-                    <Clock className="w-4 h-4" />
-                    <span>{activity.updated}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-400">
+                <p>No recent activity</p>
+                <p className="text-sm mt-2">Start creating characters, places, or plot points</p>
+              </div>
+            )}
           </div>
 
           {/* Quick Stats */}

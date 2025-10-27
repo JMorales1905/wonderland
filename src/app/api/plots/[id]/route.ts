@@ -1,10 +1,9 @@
 // ==========================================
-// 3. API Route - PUT & DELETE (app/api/places/[id]/route.ts)
+// 3. API Route - PUT & DELETE (app/api/plots/[id]/route.ts)
 // ==========================================
-
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
-import Place from '@/app/models/Plot';
+import Plot from '@/app/models/Plot';
 import mongoose from 'mongoose';
 
 export async function PUT(
@@ -19,34 +18,41 @@ export async function PUT(
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
-        { error: 'Invalid place ID' },
+        { error: 'Invalid plot ID' },
         { status: 400 }
       );
     }
 
     const body = await request.json();
 
-    const plot = await Place.findOneAndUpdate(
+    const plot = await Plot.findOneAndUpdate(
       { _id: id, userId },
       {
+        title: body.title,
+        chapter: body.chapter,
+        type: body.type,
         description: body.description,
-        beginning: body.beginning,
-        middle: body.middle,
-        end: body.end,
+        timeframe: body.timeframe,
+        location: body.location,
+        characters: body.characters,
+        significance: body.significance,
+        conflicts: body.conflicts,
+        resolution: body.resolution,
+        notes: body.notes,
       },
       { new: true, runValidators: true }
     );
 
     if (!plot) {
       return NextResponse.json(
-        { error: 'Not found or unauthorized' },
+        { error: 'Plot not found or unauthorized' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({ plot }, { status: 200 });
   } catch (error: any) {
-    console.error('PUT /api/plot/[id] error:', error);
+    console.error('PUT /api/plots/[id] error:', error);
 
     if (error.name === 'ValidationError') {
       return NextResponse.json(
@@ -74,16 +80,16 @@ export async function DELETE(
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
-        { error: 'Invalid place ID' },
+        { error: 'Invalid plot ID' },
         { status: 400 }
       );
     }
 
-    const plot = await Place.findOneAndDelete({ _id: id, userId });
+    const plot = await Plot.findOneAndDelete({ _id: id, userId });
 
     if (!plot) {
       return NextResponse.json(
-        { error: 'Not found or unauthorized' },
+        { error: 'Plot not found or unauthorized' },
         { status: 404 }
       );
     }
@@ -93,7 +99,7 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('DELETE /api/plot/[id] error:', error);
+    console.error('DELETE /api/plots/[id] error:', error);
     return NextResponse.json(
       { error: 'Failed to delete plot', details: error.message },
       { status: 500 }

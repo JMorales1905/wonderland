@@ -1,9 +1,9 @@
 // ==========================================
-// 2. API Route - GET and POST (app/api/plot/route.ts)
+// 2. API Route - GET & POST (app/api/plots/route.ts)
 // ==========================================
-import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/app/lib/mongodb";
-import Plot from "@/app/models/Plot";
+import { NextRequest, NextResponse } from 'next/server';
+import connectDB from '@/app/lib/mongodb';
+import Plot from '@/app/models/Plot';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,22 +19,21 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { type: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { beginning: { $regex: search, $options: 'i' } },
-        { middle: { $regex: search, $options: 'i' } },
-        { end: { $regex: search, $options: 'i' } },
       ];
     }
 
-    const plot = await Plot.find(query)
+    const plots = await Plot.find(query)
       .sort({ createdAt: -1 })
       .lean();
 
-    return NextResponse.json({ plot }, { status: 200 });
+    return NextResponse.json({ plots }, { status: 200 });
   } catch (error: any) {
-    console.error('GET /api/plot error:', error);
+    console.error('GET /api/plots error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch plot', details: error.message },
+      { error: 'Failed to fetch plots', details: error.message },
       { status: 500 }
     );
   }
@@ -48,26 +47,33 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    if (!body.description) {
+    if (!body.title || !body.type || !body.description) {
       return NextResponse.json(
-        { error: 'Description are required' },
+        { error: 'Title, type, and description are required' },
         { status: 400 }
       );
     }
 
     const plot = await Plot.create({
       userId,
+      title: body.title,
+      chapter: body.chapter,
+      type: body.type,
       description: body.description,
-      beginning: body.beginning,
-      middle: body.middle,
-      end: body.end,
+      timeframe: body.timeframe,
+      location: body.location,
+      characters: body.characters,
+      significance: body.significance,
+      conflicts: body.conflicts,
+      resolution: body.resolution,
+      notes: body.notes,
     });
 
     return NextResponse.json({ plot }, { status: 201 });
   } catch (error: any) {
-    console.error('POST /api/plot error:', error);
+    console.error('POST /api/plots error:', error);
     
-    if (error.description === 'ValidationError') {
+    if (error.name === 'ValidationError') {
       return NextResponse.json(
         { error: 'Validation failed', details: error.message },
         { status: 400 }
