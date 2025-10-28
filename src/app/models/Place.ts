@@ -1,5 +1,5 @@
 // ==========================================
-// 1. Place Model (models/Place.ts)
+// FILE 1: models/Place.ts
 // ==========================================
 import mongoose, { Schema, Model, models } from 'mongoose';
 
@@ -74,6 +74,10 @@ const PlaceSchema = new Schema<IPlace>(
       type: String,
       trim: true,
       maxlength: [1000, 'Features cannot be more than 1000 characters'],
+    },
+    imageUrl: {
+      type: String,
+      trim: true,
     },
   },
   {

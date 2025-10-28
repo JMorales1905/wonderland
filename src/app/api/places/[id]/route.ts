@@ -1,9 +1,9 @@
 // ==========================================
-// 3. API Route - PUT & DELETE (app/api/places/[id]/route.ts)
+// FILE 3: app/api/places/[id]/route.ts
 // ==========================================
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
-import Place from '@/app/models/Places';
+import Place from '@/app/models/Place';
 import mongoose from 'mongoose';
 
 export async function PUT(

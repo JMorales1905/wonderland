@@ -1,9 +1,9 @@
 // ==========================================
-// 2. API Route - GET & POST (app/api/places/route.ts)
+// FILE 2: app/api/places/route.ts
 // ==========================================
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
-import Place from '@/app/models/Places';
+import Place from '@/app/models/Place';
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       history: body.history,
       inhabitants: body.inhabitants,
       features: body.features,
-      imageUrl: body.imageUrl
+      imageUrl: body.imageUrl,
     });
 
     return NextResponse.json({ place }, { status: 201 });

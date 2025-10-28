@@ -76,13 +76,16 @@ export default function PlacesTemplate() {
         try {
             setLoading(true);
             setError(null);
-            const res = await fetch('/api/places');
+
+            // Add a timestamp to prevent caching
+            const res = await fetch(`/api/places?t=${Date.now()}`);
 
             if (!res.ok) {
                 throw new Error('Failed to fetch places');
             }
 
             const data = await res.json();
+            console.log('Fetched places:', data.places); // Debug log
             setPlaces(data.places || []);
         } catch (error) {
             console.error('Error fetching places:', error);
@@ -148,7 +151,6 @@ export default function PlacesTemplate() {
                 features: place.features || '',
                 imageUrl: place.imageUrl || ''
             });
-            // Set the preview to the existing image URL if it exists
             if (place.imageUrl) {
                 setImagePreview(place.imageUrl);
             }
@@ -174,13 +176,10 @@ export default function PlacesTemplate() {
             setError(null);
 
             let uploadedImageUrl = formData.imageUrl;
-            console.log('Initial imageUrl:', uploadedImageUrl);
-            console.log('imageFile:', imageFile);
-            console.log('imagePreview:', imagePreview);
+            console.log('1. Starting submit, initial imageUrl:', uploadedImageUrl);
 
-            // Only upload if a NEW file was selected
             if (imageFile) {
-                console.log('Uploading new image to Cloudinary...');
+                console.log('2. Uploading new image file...');
                 const imageFormData = new FormData();
                 imageFormData.append('file', imageFile);
                 imageFormData.append('upload_preset', 'narrative-wiki');
@@ -193,22 +192,20 @@ export default function PlacesTemplate() {
                     }
                 );
 
-                console.log('Cloudinary response status:', cloudinaryResponse.status);
+                console.log('3. Cloudinary response status:', cloudinaryResponse.status);
 
                 if (cloudinaryResponse.ok) {
                     const cloudinaryData = await cloudinaryResponse.json();
                     uploadedImageUrl = cloudinaryData.secure_url;
-                    console.log('New uploaded URL:', uploadedImageUrl);
+                    console.log('4. Got Cloudinary URL:', uploadedImageUrl);
                 } else {
-                    const errorData = await cloudinaryResponse.text();
-                    console.error('Cloudinary error:', errorData);
+                    const errorText = await cloudinaryResponse.text();
+                    console.error('Cloudinary error:', errorText);
                     throw new Error('Failed to upload image');
                 }
-            }
-            // If editing and there's an imagePreview but no new file, keep the existing URL
-            else if (editingPlace && imagePreview && !imageFile) {
+            } else if (editingPlace && imagePreview && !imageFile) {
                 uploadedImageUrl = imagePreview;
-                console.log('Keeping existing image URL:', uploadedImageUrl);
+                console.log('5. Keeping existing imageUrl:', uploadedImageUrl);
             }
 
             const url = editingPlace
@@ -222,7 +219,8 @@ export default function PlacesTemplate() {
                 imageUrl: uploadedImageUrl
             };
 
-            console.log('Sending data to API:', dataToSend);
+            console.log('6. Sending to API:', method, url);
+            console.log('7. Data being sent:', JSON.stringify(dataToSend, null, 2));
 
             const res = await fetch(url, {
                 method,
@@ -230,16 +228,16 @@ export default function PlacesTemplate() {
                 body: JSON.stringify(dataToSend),
             });
 
-            console.log('API response status:', res.status);
+            console.log('8. API response status:', res.status);
 
             if (!res.ok) {
                 const errorData = await res.json();
-                console.error('API error:', errorData);
+                console.error('9. API error:', errorData);
                 throw new Error(errorData.error || 'Failed to save place');
             }
 
-            const savedData = await res.json();
-            console.log('Saved place data:', savedData);
+            const savedPlace = await res.json();
+            console.log('10. Saved place from API:', savedPlace);
 
             await fetchPlaces();
             handleCloseModal();
@@ -356,11 +354,13 @@ export default function PlacesTemplate() {
                                     <div className="p-6">
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex items-center space-x-3 flex-1">
-                                                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                                    <span className="text-white font-bold text-lg">
-                                                        {place.name.charAt(0)}
-                                                    </span>
-                                                </div>
+                                                {!place.imageUrl && (
+                                                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-white font-bold text-lg">
+                                                            {place.name.charAt(0)}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 <div className="min-w-0">
                                                     <h3 className="text-lg font-semibold text-white truncate">{place.name}</h3>
                                                     <p className="text-slate-400 text-sm">{place.type}</p>
@@ -439,7 +439,6 @@ export default function PlacesTemplate() {
                                     <span>Basic Information</span>
                                 </h3>
 
-                                {/* Image Upload */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-300 mb-2">
                                         Place Image
