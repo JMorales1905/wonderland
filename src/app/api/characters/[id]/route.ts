@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import Character from '@/app/models/Character';
 import mongoose from 'mongoose';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../auth/[...nextauth]/route';
 // import { getServerSession } from 'next-auth/next';
 // import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -13,15 +15,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({error: 'Unauthorized'}, {status: 401})
+    }
+    const userId = session.user.id;
+    
     await connectDB();
-
-    // const session = await getServerSession(authOptions);
-    // if (!session?.user?.id) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-    // const userId = session.user.id;
-
-    const userId = 'temp-user-id'; // TODO: Replace with actual auth
 
     const { id } = await params;
 
@@ -80,15 +80,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+   const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({error: 'Unauthorized'}, {status: 401})
+    }
+    const userId = session.user.id;
+   
     await connectDB();
-
-    // const session = await getServerSession(authOptions);
-    // if (!session?.user?.id) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-    // const userId = session.user.id;
-
-    const userId = 'temp-user-id'; // TODO: Replace with actual auth
 
     const { id } = await params;
 
