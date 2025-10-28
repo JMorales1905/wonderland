@@ -8,5 +8,6 @@ export const config = {
     "/templates/:path*",
     "/dashboard",
     "/",
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };

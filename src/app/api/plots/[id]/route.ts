@@ -81,9 +81,14 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({error: 'Unauthorized'}, {status: 401})
+    }
+    const userId = session.user.id;
+    
     await connectDB();
 
-    const userId = 'temp-user-id';
     const { id } = await context.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {

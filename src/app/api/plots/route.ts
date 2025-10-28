@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({error: 'Unauthorized'},{status:401});
     }
 
-    const userId = sessionStorage.user.id;
+    const userId = session.user.id;
 
     await connectDB();
 
@@ -47,9 +47,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
 
-    const userId = 'temp-user-id';
+const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({error: 'Unauthorized'},{status:401});
+    }
+
+    const userId = session.user.id;
+
+    await connectDB();
 
     const body = await request.json();
 
