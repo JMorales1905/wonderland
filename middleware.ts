@@ -1,14 +1,9 @@
-// ==========================================
-// middleware.ts - Fixed version
-// ==========================================
+// middleware.ts
 export { default } from "next-auth/middleware";
 
 export const config = {
   matcher: [
-    // Protect these specific routes
+    // Only protect template routes, NOT the homepage
     "/templates/:path*",
-    "/dashboard",
-    // Protect root but exclude auth, api, and static files
-    "/((?!api|auth|_next/static|_next/image|favicon.ico|.*\\..*$).*)",
   ],
 };

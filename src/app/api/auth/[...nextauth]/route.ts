@@ -1,6 +1,3 @@
-// ==========================================
-// FILE 1: app/api/auth/[...nextauth]/route.ts
-// ==========================================
 import NextAuth, { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -11,7 +8,6 @@ export const authOptions: AuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    // Optional: Add email/password authentication
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -19,8 +15,6 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // TODO: Add your own logic here to find user from database
-        // For now, this is a placeholder
         if (credentials?.email && credentials?.password) {
           return {
             id: "1",
@@ -39,6 +33,14 @@ export const authOptions: AuthOptions = {
     signIn: "/auth/signin",
   },
   callbacks: {
+    // Handle redirects properly
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;

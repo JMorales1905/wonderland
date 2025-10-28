@@ -2,9 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, Users, MapPin, BookOpen, Plus, Clock, Loader2 } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Search, Users, MapPin, BookOpen, Plus, Clock, Loader2, LogOut } from 'lucide-react';
 
 export default function NarrativeWikiDashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{
     type: 'character' | 'place' | 'plot';
@@ -29,14 +33,22 @@ export default function NarrativeWikiDashboard() {
 
   const [loading, setLoading] = useState(true);
 
+  // Redirect to sign-in if not authenticated
   useEffect(() => {
-    fetchStats();
-    fetchRecentActivity();
-  }, []);
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchStats();
+      fetchRecentActivity();
+    }
+  }, [status]);
 
   const fetchRecentActivity = async () => {
     try {
-      // Fetch recent items from all three APIs
       const [charactersRes, placesRes, plotsRes] = await Promise.all([
         fetch('/api/characters'),
         fetch('/api/places'),
@@ -49,7 +61,6 @@ export default function NarrativeWikiDashboard() {
         plotsRes.json()
       ]);
 
-      // Combine and format all items
       const allItems = [
         ...(charactersData.characters || []).map((item: any) => ({
           type: 'character' as const,
@@ -71,7 +82,6 @@ export default function NarrativeWikiDashboard() {
         }))
       ];
 
-      // Sort by most recently updated and take top 5
       const sortedItems = allItems
         .sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime())
         .slice(0, 5)
@@ -102,15 +112,12 @@ export default function NarrativeWikiDashboard() {
     try {
       setLoading(true);
 
-      // Fetch character count
       const charactersRes = await fetch('/api/characters');
       const charactersData = await charactersRes.json();
 
-      // Fetch places count
       const placesRes = await fetch('/api/places');
       const placesData = await placesRes.json();
 
-      // Fetch plot count (you'll need to create this API)
       const plotRes = await fetch('/api/plots');
       const plotData = await plotRes.json();
 
@@ -165,7 +172,6 @@ export default function NarrativeWikiDashboard() {
     setShowSearchResults(true);
 
     try {
-      // Search across all three templates
       const [charactersRes, placesRes, plotsRes] = await Promise.all([
         fetch(`/api/characters?search=${encodeURIComponent(searchQuery)}`),
         fetch(`/api/places?search=${encodeURIComponent(searchQuery)}`),
@@ -178,7 +184,6 @@ export default function NarrativeWikiDashboard() {
         plotsRes.json()
       ]);
 
-      // Combine all results
       const results = [
         ...(charactersData.characters || []).map((item: any) => ({
           type: 'character' as const,
@@ -241,6 +246,27 @@ export default function NarrativeWikiDashboard() {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/auth/signin' });
+  };
+
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render dashboard if not authenticated
+  if (status === 'unauthenticated') {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
@@ -252,11 +278,15 @@ export default function NarrativeWikiDashboard() {
               <h1 className="text-2xl font-bold text-white">Narrative Wiki</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">
-                Settings
-              </button>
-              <button className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                Export Data
+              <span className="text-sm text-slate-400">
+                {session?.user?.email}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center space-x-2 px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
               </button>
             </div>
           </div>
