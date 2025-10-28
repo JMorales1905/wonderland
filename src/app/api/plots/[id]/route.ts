@@ -5,15 +5,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import Plot from '@/app/models/Plot';
 import mongoose from 'mongoose';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../auth/[...nextauth]/route';
 
 export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({error: 'Unauthorized'}, {status: 401})
+    }
+    const userId = session.user.id;
+
     await connectDB();
 
-    const userId = 'temp-user-id';
     const { id } = await context.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {

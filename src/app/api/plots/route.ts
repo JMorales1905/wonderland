@@ -4,13 +4,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import Plot from '@/app/models/Plot';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]/route';
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({error: 'Unauthorized'},{status:401});
+    }
 
-    // TODO: Replace with actual auth
-    const userId = 'temp-user-id';
+    const userId = sessionStorage.user.id;
+
+    await connectDB();
 
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search');
