@@ -39,6 +39,7 @@ export async function PUT(
         conflicts: body.conflicts,
         resolution: body.resolution,
         notes: body.notes,
+        imageUrl: body.imageUrl,
       },
       { new: true, runValidators: true }
     );

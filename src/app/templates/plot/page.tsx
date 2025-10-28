@@ -1,3 +1,6 @@
+// ==========================================
+// FILE 1: app/templates/plot/page.tsx
+// ==========================================
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -11,7 +14,9 @@ import {
     ArrowLeft,
     BookOpen,
     FileText,
-    Loader2
+    Loader2,
+    Upload,
+    Image as ImageIcon
 } from 'lucide-react';
 
 interface Plot {
@@ -27,6 +32,7 @@ interface Plot {
     conflicts?: string;
     resolution?: string;
     notes?: string;
+    imageUrl?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -43,6 +49,7 @@ interface PlotFormData {
     conflicts: string;
     resolution: string;
     notes: string;
+    imageUrl: string;
 }
 
 export default function PlotTemplate() {
@@ -53,6 +60,8 @@ export default function PlotTemplate() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string>('');
     const [formData, setFormData] = useState<PlotFormData>({
         title: '',
         chapter: '',
@@ -64,7 +73,8 @@ export default function PlotTemplate() {
         significance: '',
         conflicts: '',
         resolution: '',
-        notes: ''
+        notes: '',
+        imageUrl: ''
     });
 
     useEffect(() => {
@@ -75,7 +85,7 @@ export default function PlotTemplate() {
         try {
             setLoading(true);
             setError(null);
-            const res = await fetch('/api/plots');
+            const res = await fetch(`/api/plots?t=${Date.now()}`);
 
             if (!res.ok) {
                 throw new Error('Failed to fetch plots');
@@ -103,9 +113,35 @@ export default function PlotTemplate() {
             significance: '',
             conflicts: '',
             resolution: '',
-            notes: ''
+            notes: '',
+            imageUrl: ''
         });
         setEditingPlot(null);
+        setImageFile(null);
+        setImagePreview('');
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                setError('Image size must be less than 5MB');
+                return;
+            }
+
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setImageFile(null);
+        setImagePreview('');
+        setFormData(prev => ({ ...prev, imageUrl: '' }));
     };
 
     const handleOpenModal = (plot?: Plot) => {
@@ -122,8 +158,12 @@ export default function PlotTemplate() {
                 significance: plot.significance || '',
                 conflicts: plot.conflicts || '',
                 resolution: plot.resolution || '',
-                notes: plot.notes || ''
+                notes: plot.notes || '',
+                imageUrl: plot.imageUrl || ''
             });
+            if (plot.imageUrl) {
+                setImagePreview(plot.imageUrl);
+            }
         } else {
             resetForm();
         }
@@ -145,16 +185,46 @@ export default function PlotTemplate() {
             setSaving(true);
             setError(null);
 
+            let uploadedImageUrl = formData.imageUrl;
+
+            if (imageFile) {
+                const imageFormData = new FormData();
+                imageFormData.append('file', imageFile);
+                imageFormData.append('upload_preset', 'narrative-wiki');
+
+                const cloudinaryResponse = await fetch(
+                    `https://api.cloudinary.com/v1_1/dhia4pqo0/image/upload`,
+                    {
+                        method: 'POST',
+                        body: imageFormData,
+                    }
+                );
+
+                if (cloudinaryResponse.ok) {
+                    const cloudinaryData = await cloudinaryResponse.json();
+                    uploadedImageUrl = cloudinaryData.secure_url;
+                } else {
+                    throw new Error('Failed to upload image');
+                }
+            } else if (editingPlot && imagePreview && !imageFile) {
+                uploadedImageUrl = imagePreview;
+            }
+
             const url = editingPlot
                 ? `/api/plots/${editingPlot._id}`
                 : '/api/plots';
 
             const method = editingPlot ? 'PUT' : 'POST';
 
+            const dataToSend = {
+                ...formData,
+                imageUrl: uploadedImageUrl
+            };
+
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(dataToSend),
             });
 
             if (!res.ok) {
@@ -262,50 +332,62 @@ export default function PlotTemplate() {
                             {filteredPlots.map((plot) => (
                                 <div
                                     key={plot._id}
-                                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition-all"
+                                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden hover:border-slate-600 transition-all"
                                 >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-center space-x-2 mb-2">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                                    <BookOpen className="w-5 h-5 text-white" />
-                                                </div>
-                                                <div className="flex-1">
+                                    {plot.imageUrl && (
+                                        <div className="w-full h-48 overflow-hidden">
+                                            <img
+                                                src={plot.imageUrl}
+                                                alt={plot.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="p-6">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center space-x-3 flex-1">
+                                                {!plot.imageUrl && (
+                                                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                        <BookOpen className="w-5 h-5 text-white" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
                                                     <h3 className="text-lg font-semibold text-white line-clamp-1">{plot.title}</h3>
                                                     {plot.chapter && (
                                                         <p className="text-slate-400 text-sm">{plot.chapter}</p>
                                                     )}
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="flex space-x-2 ml-2">
-                                            <button
-                                                onClick={() => handleOpenModal(plot)}
-                                                className="p-2 text-slate-400 hover:text-purple-400 transition-colors"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(plot._id)}
-                                                className="p-2 text-slate-400 hover:text-red-400 transition-colors"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <span className="inline-block px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm">
-                                            {plot.type}
-                                        </span>
-                                        <p className="text-slate-300 text-sm line-clamp-3">{plot.description}</p>
-
-                                        {plot.timeframe && (
-                                            <div className="pt-3 border-t border-slate-700">
-                                                <p className="text-slate-500 text-xs mb-1">Timeframe</p>
-                                                <p className="text-slate-400 text-sm">{plot.timeframe}</p>
+                                            <div className="flex space-x-2 ml-2">
+                                                <button
+                                                    onClick={() => handleOpenModal(plot)}
+                                                    className="p-2 text-slate-400 hover:text-purple-400 transition-colors"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(plot._id)}
+                                                    className="p-2 text-slate-400 hover:text-red-400 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
-                                        )}
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <span className="inline-block px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm">
+                                                {plot.type}
+                                            </span>
+                                            <p className="text-slate-300 text-sm line-clamp-3">{plot.description}</p>
+
+                                            {plot.timeframe && (
+                                                <div className="pt-3 border-t border-slate-700">
+                                                    <p className="text-slate-500 text-xs mb-1">Timeframe</p>
+                                                    <p className="text-slate-400 text-sm">{plot.timeframe}</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -352,6 +434,50 @@ export default function PlotTemplate() {
                                     <BookOpen className="w-5 h-5 text-purple-400" />
                                     <span>Basic Information</span>
                                 </h3>
+
+                                {/* Image Upload */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                                        Plot Image
+                                    </label>
+                                    <div className="flex items-center space-x-4">
+                                        {imagePreview ? (
+                                            <div className="relative">
+                                                <img
+                                                    src={imagePreview}
+                                                    alt="Preview"
+                                                    className="w-24 h-24 rounded-lg object-cover"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveImage}
+                                                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                                    disabled={saving}
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="w-24 h-24 bg-slate-900 border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center">
+                                                <ImageIcon className="w-8 h-8 text-slate-600" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1">
+                                            <label className="flex items-center justify-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors cursor-pointer">
+                                                <Upload className="w-4 h-4" />
+                                                <span>Upload Image</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleImageChange}
+                                                    className="hidden"
+                                                    disabled={saving}
+                                                />
+                                            </label>
+                                            <p className="text-slate-500 text-xs mt-2">PNG, JPG up to 5MB</p>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>

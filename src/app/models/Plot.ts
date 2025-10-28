@@ -17,6 +17,7 @@ export interface IPlot {
   conflicts?: string;
   resolution?: string;
   notes?: string;
+  imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +87,10 @@ const PlotSchema = new Schema<IPlot>(
       trim: true,
       maxlength: [2000, 'Notes cannot be more than 2000 characters'],
     },
+    imageUrl: {
+      type: String,
+      trim: true,
+    }
   },
   {
     timestamps: true,
@@ -95,7 +100,9 @@ const PlotSchema = new Schema<IPlot>(
 PlotSchema.index({ userId: 1, title: 1 });
 PlotSchema.index({ userId: 1, createdAt: -1 });
 
-const Plot: Model<IPlot> = 
-  models.Plot || mongoose.model<IPlot>('Plot', PlotSchema);
+if (models.Plot) {
+  delete models.Plot;
+}
+const Plot: Model<IPlot> = mongoose.model<IPlot>('Plot', PlotSchema);
 
 export default Plot;

@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
       conflicts: body.conflicts,
       resolution: body.resolution,
       notes: body.notes,
+      imageUrl: body.imageUrl,
     });
 
     return NextResponse.json({ plot }, { status: 201 });
