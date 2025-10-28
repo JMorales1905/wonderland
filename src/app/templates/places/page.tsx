@@ -11,7 +11,9 @@ import {
     ArrowLeft,
     MapPin,
     FileText,
-    Loader2
+    Loader2,
+    Upload,
+    Image as ImageIcon
 } from 'lucide-react';
 
 interface Place {
@@ -25,6 +27,7 @@ interface Place {
     history?: string;
     inhabitants?: string;
     features?: string;
+    imageUrl?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -39,6 +42,7 @@ interface PlaceFormData {
     history: string;
     inhabitants: string;
     features: string;
+    imageUrl: string;
 }
 
 export default function PlacesTemplate() {
@@ -49,6 +53,8 @@ export default function PlacesTemplate() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string>('');
     const [formData, setFormData] = useState<PlaceFormData>({
         name: '',
         type: '',
@@ -58,7 +64,8 @@ export default function PlacesTemplate() {
         atmosphere: '',
         history: '',
         inhabitants: '',
-        features: ''
+        features: '',
+        imageUrl: ''
     });
 
     useEffect(() => {
@@ -95,9 +102,35 @@ export default function PlacesTemplate() {
             atmosphere: '',
             history: '',
             inhabitants: '',
-            features: ''
+            features: '',
+            imageUrl: ''
         });
         setEditingPlace(null);
+        setImageFile(null);
+        setImagePreview('');
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                setError('Image size must be less than 5MB');
+                return;
+            }
+
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setImageFile(null);
+        setImagePreview('');
+        setFormData(prev => ({ ...prev, imageUrl: '' }));
     };
 
     const handleOpenModal = (place?: Place) => {
@@ -112,8 +145,13 @@ export default function PlacesTemplate() {
                 atmosphere: place.atmosphere || '',
                 history: place.history || '',
                 inhabitants: place.inhabitants || '',
-                features: place.features || ''
+                features: place.features || '',
+                imageUrl: place.imageUrl || ''
             });
+            // Set the preview to the existing image URL if it exists
+            if (place.imageUrl) {
+                setImagePreview(place.imageUrl);
+            }
         } else {
             resetForm();
         }
@@ -135,22 +173,73 @@ export default function PlacesTemplate() {
             setSaving(true);
             setError(null);
 
+            let uploadedImageUrl = formData.imageUrl;
+            console.log('Initial imageUrl:', uploadedImageUrl);
+            console.log('imageFile:', imageFile);
+            console.log('imagePreview:', imagePreview);
+
+            // Only upload if a NEW file was selected
+            if (imageFile) {
+                console.log('Uploading new image to Cloudinary...');
+                const imageFormData = new FormData();
+                imageFormData.append('file', imageFile);
+                imageFormData.append('upload_preset', 'narrative-wiki');
+
+                const cloudinaryResponse = await fetch(
+                    `https://api.cloudinary.com/v1_1/dhia4pqo0/image/upload`,
+                    {
+                        method: 'POST',
+                        body: imageFormData,
+                    }
+                );
+
+                console.log('Cloudinary response status:', cloudinaryResponse.status);
+
+                if (cloudinaryResponse.ok) {
+                    const cloudinaryData = await cloudinaryResponse.json();
+                    uploadedImageUrl = cloudinaryData.secure_url;
+                    console.log('New uploaded URL:', uploadedImageUrl);
+                } else {
+                    const errorData = await cloudinaryResponse.text();
+                    console.error('Cloudinary error:', errorData);
+                    throw new Error('Failed to upload image');
+                }
+            }
+            // If editing and there's an imagePreview but no new file, keep the existing URL
+            else if (editingPlace && imagePreview && !imageFile) {
+                uploadedImageUrl = imagePreview;
+                console.log('Keeping existing image URL:', uploadedImageUrl);
+            }
+
             const url = editingPlace
                 ? `/api/places/${editingPlace._id}`
                 : '/api/places';
 
             const method = editingPlace ? 'PUT' : 'POST';
 
+            const dataToSend = {
+                ...formData,
+                imageUrl: uploadedImageUrl
+            };
+
+            console.log('Sending data to API:', dataToSend);
+
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(dataToSend),
             });
+
+            console.log('API response status:', res.status);
 
             if (!res.ok) {
                 const errorData = await res.json();
+                console.error('API error:', errorData);
                 throw new Error(errorData.error || 'Failed to save place');
             }
+
+            const savedData = await res.json();
+            console.log('Saved place data:', savedData);
 
             await fetchPlaces();
             handleCloseModal();
@@ -252,45 +341,57 @@ export default function PlacesTemplate() {
                             {filteredPlaces.map((place) => (
                                 <div
                                     key={place._id}
-                                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition-all"
+                                    className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden hover:border-slate-600 transition-all"
                                 >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
-                                                <span className="text-white font-bold text-lg">
-                                                    {place.name.charAt(0)}
-                                                </span>
+                                    {place.imageUrl && (
+                                        <div className="w-full h-48 overflow-hidden">
+                                            <img
+                                                src={place.imageUrl}
+                                                alt={place.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="p-6">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center space-x-3 flex-1">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <span className="text-white font-bold text-lg">
+                                                        {place.name.charAt(0)}
+                                                    </span>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h3 className="text-lg font-semibold text-white truncate">{place.name}</h3>
+                                                    <p className="text-slate-400 text-sm">{place.type}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-white">{place.name}</h3>
-                                                <p className="text-slate-400 text-sm">{place.type}</p>
+                                            <div className="flex space-x-2 ml-2">
+                                                <button
+                                                    onClick={() => handleOpenModal(place)}
+                                                    className="p-2 text-slate-400 hover:text-green-400 transition-colors"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(place._id)}
+                                                    className="p-2 text-slate-400 hover:text-red-400 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="flex space-x-2">
-                                            <button
-                                                onClick={() => handleOpenModal(place)}
-                                                className="p-2 text-slate-400 hover:text-green-400 transition-colors"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(place._id)}
-                                                className="p-2 text-slate-400 hover:text-red-400 transition-colors"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+
+                                        <div className="space-y-3">
+                                            <p className="text-slate-300 text-sm line-clamp-3">{place.description}</p>
+
+                                            {place.atmosphere && (
+                                                <div className="pt-3 border-t border-slate-700">
+                                                    <p className="text-slate-500 text-xs mb-1">Atmosphere</p>
+                                                    <p className="text-slate-400 text-sm line-clamp-2">{place.atmosphere}</p>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <p className="text-slate-300 text-sm line-clamp-3">{place.description}</p>
-
-                                        {place.atmosphere && (
-                                            <div className="pt-3 border-t border-slate-700">
-                                                <p className="text-slate-500 text-xs mb-1">Atmosphere</p>
-                                                <p className="text-slate-400 text-sm line-clamp-2">{place.atmosphere}</p>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -337,6 +438,50 @@ export default function PlacesTemplate() {
                                     <MapPin className="w-5 h-5 text-green-400" />
                                     <span>Basic Information</span>
                                 </h3>
+
+                                {/* Image Upload */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                                        Place Image
+                                    </label>
+                                    <div className="flex items-center space-x-4">
+                                        {imagePreview ? (
+                                            <div className="relative">
+                                                <img
+                                                    src={imagePreview}
+                                                    alt="Preview"
+                                                    className="w-24 h-24 rounded-lg object-cover"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveImage}
+                                                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                                    disabled={saving}
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="w-24 h-24 bg-slate-900 border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center">
+                                                <ImageIcon className="w-8 h-8 text-slate-600" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1">
+                                            <label className="flex items-center justify-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors cursor-pointer">
+                                                <Upload className="w-4 h-4" />
+                                                <span>Upload Image</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleImageChange}
+                                                    className="hidden"
+                                                    disabled={saving}
+                                                />
+                                            </label>
+                                            <p className="text-slate-500 text-xs mt-2">PNG, JPG up to 5MB</p>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>

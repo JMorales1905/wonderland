@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       appearance: body.appearance,
       relationships: body.relationships,
       motivations: body.motivations,
-      imageUrl: body.imageUrl,
+      imageUrl: body.imageUrl,  //added for image handling
     });
 
     return NextResponse.json({ character }, { status: 201 });

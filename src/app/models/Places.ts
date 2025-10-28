@@ -15,6 +15,7 @@ export interface IPlace {
   history?: string;
   inhabitants?: string;
   features?: string;
+  imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }

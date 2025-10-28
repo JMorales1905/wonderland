@@ -37,6 +37,7 @@ export async function PUT(
         history: body.history,
         inhabitants: body.inhabitants,
         features: body.features,
+        imageUrl: body.imageUrl,
       },
       { new: true, runValidators: true }
     );

@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       history: body.history,
       inhabitants: body.inhabitants,
       features: body.features,
+      imageUrl: body.imageUrl
     });
 
     return NextResponse.json({ place }, { status: 201 });

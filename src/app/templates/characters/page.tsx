@@ -181,7 +181,7 @@ export default function CharactersTemplate() {
                 imageFormData.append('file', imageFile);
                 imageFormData.append('upload_preset', 'narrative-wiki'); // Change to your preset name
 
-                // Replace YOUR_CLOUD_NAME with actual Cloudinary cloud name
+                // Replace YOUR_CLOUD_NAME with your actual Cloudinary cloud name
                 const cloudinaryResponse = await fetch(
                     `https://api.cloudinary.com/v1_1/dhia4pqo0/image/upload`,
                     {
