@@ -3,12 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { Search, Users, MapPin, BookOpen, Plus, Clock, Loader2, LogOut } from 'lucide-react';
 
 export default function NarrativeWikiDashboard() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{
     type: 'character' | 'place' | 'plot';
@@ -32,13 +30,6 @@ export default function NarrativeWikiDashboard() {
   });
 
   const [loading, setLoading] = useState(true);
-
-  // Redirect to sign-in if not authenticated
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-    }
-  }, [status, router]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -260,11 +251,6 @@ export default function NarrativeWikiDashboard() {
         </div>
       </div>
     );
-  }
-
-  // Don't render dashboard if not authenticated
-  if (status === 'unauthenticated') {
-    return null;
   }
 
   return (
